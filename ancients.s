@@ -176,6 +176,10 @@ moff	dc.w	$1212
 mon	dc.w	$0808
 
 loadmod bsr getsize
+	move.l	#lz7mod,filebuffer
+	move.l	#dta+26,filelength
+	bsr	loader
+	rts
 
 *** Get file size
 getsize:
@@ -201,6 +205,34 @@ getsize:
 	rts
 *** End of get file size
 
+*** File loader
+
+* in:   filename.l = address to filename (null term)
+*     filebuffer.l = destination address
+*     filelength.l = bytes to load
+
+loader:
+		clr.w	-(sp)					;Open file read only
+		move.l	a6,-(sp)			;Address to filename
+		move.w	#$3d,-(sp)				;
+		trap	#1						;
+		addq.l	#8,sp					;
+		move.w	d0,.fn					;Store filenumber
+ 
+		move.l	filebuffer,-(sp)		;Buffer address
+		move.l	filelength,-(sp)		;Length of file
+		move.w	.fn,-(sp)				;Filenumber
+		move.w	#$3f,-(sp)				;
+		trap	#1						;
+		lea.l	12(sp),sp				;
+
+		move.w	.fn,-(sp)				;Filenumber for closing
+		move.w	#$3e,-(sp)				;
+		trap	#1						;
+		addq.l	#4,sp					;
+
+		rts
+.fn:		dc.w	0	
 
 Scroll_ROX:
 	lea	Buffer_scroll,a0
@@ -307,7 +339,7 @@ filetab:		dc.b 	'bignum.lz7',0,'  '
 			even
 *** end of filenames
 
-music	incbin	dah.mod,0
+;music	incbin	dah.mod,0
 m_end	even
 
 picture	incbin	ancients.pi1
@@ -341,6 +373,8 @@ dta:	ds.b    44							;dta block about file info
 old_resolution:	ds.w 	1
 save_stack	ds.l  	1
 old_palette	ds.l	8
+lz7mod		ds.b	57000
+music		ds.b    57000
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
