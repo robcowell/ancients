@@ -306,6 +306,7 @@ a set a+8
 	dbf	d0,.loop
 	rts
 
+	include "lz77.s"
 
         section	data
 
