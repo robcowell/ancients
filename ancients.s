@@ -76,6 +76,9 @@ showpic:
 	dbra    d0,.copypic			;loop
 
 start	
+	lea filetab,a6
+	bsr loadmod
+	bsr lzdepack
         bsr	play
 
 wait	tst.w	vblcount			;Wait VBL
@@ -233,6 +236,14 @@ loader:
 
 		rts
 .fn:		dc.w	0	
+
+*** Uncompress LZ77 packed picture
+lzdepack:
+	lea lz7mod,a0
+	lea music,a1
+	bsr lz77
+	rts
+*** End decompress
 
 Scroll_ROX:
 	lea	Buffer_scroll,a0
