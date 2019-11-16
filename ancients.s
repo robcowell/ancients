@@ -177,7 +177,7 @@ mon	dc.w	$0808
 
 loadmod bsr getsize
 	move.l	#lz7mod,filebuffer
-	move.l	#dta+26,filelength
+	move.l	dta+26,filelength
 	bsr	loader
 	rts
 
@@ -309,6 +309,10 @@ a set a+8
 	include "lz77.s"
 
         section	data
+
+filename:	dc.l	0
+filebuffer:	dc.l	0
+filelength:	dc.l	0
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
