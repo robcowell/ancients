@@ -185,7 +185,7 @@ mtloop3	clr.l	(a2)
 	tst.w	4(a0)
 	bne.s	.mt_no_test
 	cmp.w	#1,6(a0)
-	ble.s	.mt_no_test
+	bhs.s	.mt_no_test
 	subq.w	#1,6(a0)
 	move.w	#1,4(a0)
 .mt_no_test	add.l	#30,a0
@@ -421,21 +421,32 @@ mt_vibnoc
 mt_trenoc
 	move.l	n_start(a6),mt_sample_point(a5)	; set start
 	moveq	#0,d0
-	move.w	n_length(a6),d0		; set length
+	move.w	n_replen(a6),d0		; set length
+	cmp.w	#2,d0
+	bls.s	.no_loop
+
 	add.l	d0,d0
-	add.l	mt_sample_point(a5),d0
+	add.l	n_loopstart(a6),d0
 	move.l	d0,mt_sample_end(a5)
 	move.l	n_loopstart(a6),d0
-	cmp.l	mt_sample_point(a5),d0
-	bne.s	.mt_set_loop
-	moveq	#0,d0
-.mt_set_loop	move.l	d0,mt_loop_start(a5)
+	move.l	d0,mt_loop_start(a5)
+	bra.s	.set_period
+
+.no_loop
+	move.w	n_length(a6),d0		; set length
+	add.l	d0,d0
+	add.l	n_start(a6),d0
+	move.l	d0,mt_sample_end(a5)
+	moveq.l	#0,d0
+	move.l	d0,mt_loop_start(a5)
+
+.set_period
 	move.w	n_period(a6),d0
 	move.w	d0,mt_period(a5)		; set period
 	move.w	n_dmabit(a6),d0
 	or.w	d0,mt_dmacontemp
 	bra	mt_checkmoreefx
- 
+
 mt_setdma
 mt_dskip	add.w	#16,mt_patternpos
 	move.b	mt_pattdeltime,d0
