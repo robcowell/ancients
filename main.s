@@ -77,9 +77,6 @@ piccy	movem.l	picture+2,d0-d7
 	move.l	#picture+34,a1
 	move.l	#((160*78)/4)-1,d0
 
-	move.l #sprite+34,a1
-	move.l	#((160*40)/4)-1,d7
-	moveq	#-1,d0	
 
 Over:	
 	move.l	(a1)+,(a0)+
@@ -139,10 +136,10 @@ music_play:
 
 
 	section	data
-mt_data	incbin dah1024.mod
+mt_data	incbin bignum1024.mod
 	ds.w	31*640/2		;These zeroes are necessary!
 picture	incbin	shiny.pi1
-sprite  incbin  sprite.pi1
+
 
 
 blackpal:
