@@ -173,7 +173,7 @@ mtloop2	move.b	(a1)+,d1
 	moveq	#30,d0
 	moveq	#0,d2
 	lea	42(a0),a0
-mtloop3	clr.l	(a2)
+mtloop3	;clr.l	(a2)
 	move.l	a2,d1
 	add.l	d2,d1
 	move.l	d1,(a1)+
@@ -185,9 +185,8 @@ mtloop3	clr.l	(a2)
 	tst.w	4(a0)
 	bne.s	.mt_no_test
 	cmp.w	#1,6(a0)
-	bhs.s	.mt_no_test
+	bhi.s	.mt_no_test
 	subq.w	#1,6(a0)
-	move.w	#1,4(a0)
 .mt_no_test	add.l	#30,a0
 	dbra	d0,mtloop3
 	add.w	d2,a2
@@ -207,20 +206,47 @@ mt_init_loops	sub.w	#30,a0
 	move.w	(a0),d0
 	beq.s	.mt_just_loop
 	subq.w	#1,d0
-.mt_copy_spl	move.w	-(a1),-(a2)
+.mt_copy_spl
+	move.w	-(a1),-(a2)
 	dbra	d0,.mt_copy_spl
 
-.mt_just_loop	moveq	#0,d0
-	move.w	4(a0),d0
-	sne	d1
-	andi.w	#$4,d1
-	move.l	mt_loop_point(pc,d1.w),a4
-	jsr	(a4)
+.mt_just_loop
+	moveq	#0,d0
+	move.w	6(a0),d0
+	bne.s  .mt_yes_loop
+
+	move.w	#640/4-1,d0
+.mt_clear_loop
+	clr.l	(a3)+
+	dbra	d0,.mt_clear_loop
+	bra.s  .mt_done_loop
+
+.mt_yes_loop
+	moveq.l	#0,d1
+	move.w	4(a0),d1
+	move.w	d1,d2
+	add.w	d0,d2
+	move.w	d2,(a0)
+
+	add.l	d1,d1
+	lea	(a2,d1.l),a4
+
+	add.l	d0,d0
+	lea	(a2,d0.l),a3
+
+	move.w	#320-1,d2
+.mt_loop_loop
+	move.w	(a4)+,(a3)+
+	dbra	d2,.mt_loop_loop
+
+.mt_done_loop
 	dbra	d7,mt_init_loops
 
 	move.l	mt_samplestarts,a0
 	move.l	mt_module_end,a1
-.mt_shift_down	move.b	(a0),d0
+
+.mt_shift_down
+	move.b	(a0),d0
 	asr.b	#1,d0
 	move.b	d0,(a0)+
 	cmp.l	a0,a1
@@ -228,31 +254,6 @@ mt_init_loops	sub.w	#30,a0
 
 	bra.w	mt_init_Paula
 
-
-mt_loop_point	dc.l	.mt_no_loop
-	dc.l	.mt_yes_loop
-.mt_no_loop	move.w	#640/4-1,d0
-.mt_clear_loop	clr.l	(a3)+
-	dbra	d0,.mt_clear_loop
-	rts
-.mt_yes_loop	add.l	d0,d0
-	lea	(a2,d0.l),a4
-	lea	(a4),a5
-	moveq	#0,d1
-	move.w	4(a0),d1
-	add.w	6(a0),d1
-	move.w	d1,(a0)
-	add.l	d1,d1
-	lea	(a2,d1.l),a3
-	move.w	6(a0),d1
-	move.w	#320-1,d2
-.mt_loop_loop	move.w	(a4)+,(a3)+
-	subq.w	#1,d1
-	bne.s	.mt_no_restart
-	lea	(a5),a4
-	move.w	6(a0),d1
-.mt_no_restart	dbra	d2,.mt_loop_loop
-	rts
 
 mt_music	movem.l	d0-d4/a0-a6,-(sp)
 	addq.b	#1,mt_counter
