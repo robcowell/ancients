@@ -1,182 +1,145 @@
 	opt	o+,s-
 
-	MOVEA.L	sp,A5		;save stack pointer
-	MOVEA.L	4(A5),A5	;basepage address i.i. program start
-	MOVE.L	12(A5),D0	;get length of text (the code)
-	ADD.L	20(A5),D0	;add length of defined data (DC.W...)
-	ADD.L	28(A5),D0	;add length of BSS reserved space (DS.W...)
-	ADDI.L	#256,D0		;add basepage length
-	MOVE.L	D0,-(sp)	;total memory required
- 	MOVE.L	A5,-(sp)	;program start address
+	section text
 
-	CLR.W	-(sp)		;junk word
-	MOVE.W	#$4A,-(sp)	;SETBLOCK command
-	TRAP	#1		
-	LEA		12(sp),sp
-
-	move.l	#64000+256,-(sp)		;malloc()
-	move.w	#72,-(sp)			;screen memory
-	trap	#1				;
-	addq.l	#6,sp				;
-	tst.l	d0				;
-	beq.w	pterm			;
+	jsr initialise
+	jsr init
+	bclr #0,$484
 	
-	add.l	#256,d0				;init screens
-	clr.b	d0				;even by 256 bytes
-	move.l	d0,screen_adr			;
-	add.l	#32000,d0			;
-	move.l	d0,screen_adr2			;
-
-	clr.l	-(sp)				;Enter supervisor mode
-	move.w	#32,-(sp)			;
-	trap	#1				;
-	addq.l	#6,sp				;
-	move.l	d0,save_stack			;
-	
-	move.b	#$12,$fffffc02.w		;Kill mouse
-
-* save the old palette; old_palette
-	lea	old_palette,a0		;put backup address in a0
-	movem.l	$ffff8240,d0-d7		;all palettes in d0-d7
-	movem.l	d0-d7,(a0)			;move data into old_palette
-* end palette save	
-
-* saves the old screen adress
-	move.w	#2,-(sp)			;get physbase
-	trap	#14
-	addq.l	#2,sp
-	move.l	d0,save_screenadr		;save old screen address
-* end screen save
-
-* save the old resolution into old_resolution
-* and change resolution to low (0)
-	move.w	#4,-(sp)			;get resolution
-	trap	#14
-	addq.l	#2,sp
-	move.w	d0,old_resolution	;save resolution
-	
-	move.w	#0,-(sp)		;low resolution
-	move.l	#-1,-(sp)		;keep physbase
-	move.l	#-1,-(sp)		;keep logbase
-	move.w	#5,-(sp)		;change screen
-	trap	#14
-	add.l	#12,sp
-* end resolution save	
-
-showpic:
-	movem.l	picture+2,d0-d7			;skip PI1 header, load palette values into data registers
-	movem.l	d0-d7,$ff8240 			; then move those data registers into the palette registers
-	lea     picture+34,a0			;load pic data into a0 - 34 bytes to skip header and palette data
-	move.l  $44e,a1				;load screen address into a1
-	move.l  a1,screen_adr
-	move 	#(30554/4),d0 	;counter
-	;move 	#(32034/4),d0 	;counter
-.copypic
-	move.l  (a0)+,(a1)+ 		;copy the picture data in a0 to the screen memory in a1
-	dbra    d0,.copypic			;loop
-
-start	
 	lea filetab,a6
 	bsr loadmod
 	bsr lzdepack
-        bsr	play
+	bsr music_init
 
-wait	tst.w	vblcount			;Wait VBL
+	move.l	$70,old_vbl
+	move.l	#vbl,$70
+
+	jsr piccy
+	
+        
+mainloop:	tst.w	vblcount			;Wait VBL
 			
-	beq.s	wait			;
-	clr.w 	vblcount
+		beq.s	mainloop			;
+		clr.w 	vblcount
 
-	move.l	screen_adr,d0			;swap screens
-	move.l	screen_adr2,screen_adr		;doublebuffer
-	move.l	d0,screen_adr2			;
-	
-	bsr scroller
-	move.b	$fffc02,d0
-	cmpi.b	#$39,d0
-	bne.s	wait
+		move.l	screen_adr,d0			;swap screens
+		move.l	screen_adr2,screen_adr		;doublebuffer
+		move.l	d0,screen_adr2			;
+		
+		bsr scroller
 
-	move.w	#3,replay+28
+		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
+		beq 	nextmod
 
-	move.w	#30000,d0
-loop	rept	150
-	nop
-	endr
-	dbf	d0,loop
+		cmp.b	#$01,$fffffc02.w 	;Escape?
+		beq		exit				; no, keep looping
 
-	bsr	stop
-	bsr	mouseon
-	
-	move.l	old_70,$70.w
-	move.l	#old_sp,-(sp)
-	move.w	#$20,-(sp)
-	trap	#1
-	addq.l	#6,sp
-
-pterm	clr.l	-(sp)
-	trap	#1
-
-; Values for registers:
-; ---------------------
-;
-; D0 = 
-;
-; $1388 = 5.0Khz
-; $2134 = 8.5 khz
-; $2ee0 = 12 khz
-; $36b0 = 15.0 khz
-; $5208 = 21 khz maximum ???
-;
-; D1 = 
-;
-; 0 = takes a bit of processor time (all volume changes)
-; 2 = takes a little bit less (no volume changes ?)
-; 3 = Shit !! Write an intro with this value !!
-;
-; D2 = 
-;
-; 0 = takes a bit of processor time (all pitch changes ?)
-; 2 = takes a little bit less (no pitch changes ?)
+		bra mainloop
 
 
-play	bclr	#0,$484.w               ; click off
+*** Cleanup
 
-	move.w	#$36b0,d0		; Khz
-	moveq.l	#0,d1			; volume variation ?
-	moveq.l	#0,d2			; pitch changes
-	lea	music,a0
-	jsr	replay
-	move.l	#new_70,$70.w
-	jsr	replay+4
-exitpl	rts
+exit	jsr music_deinit
+	bset #0,$484.w
+	move.l	#backup,a0
+	move.l	(a0)+,$70		;restore vector $70 (vbl)
+	move.l	(a0)+,$120		;restore vector $120 (timer b)
+	move.b	(a0)+,$fffa07		;restore enable a
+	move.b	(a0)+,$fffa13		;restore mask a
+	move.b	(a0)+,$fffa15		;restore mask b
+	move.b	(a0)+,$fffa1b		;restore timer b control
+	move.b	(a0)+,$fffa21		;restore timer b data
 
-stop	bsr	replay+8
-	bset	#0,$484.w
+	jsr restore
+
+	clr.w -(sp)			;exit
+	trap #1
+
+init
+	move.l	#backup,a0
+	move.l	$70,(a0)+		;backup vector $70 (VBL)
+	move.l	$120,(a0)+		;backup vector $120 (timer b)
+	move.b	$fffa07,(a0)+		;backup enable a
+	move.b	$fffa13,(a0)+		;backup mask a
+	move.b	$fffa15,(a0)+		;backup mask b
+	move.b	$fffa1b,(a0)+		;backup timer b control
+	move.b	$fffa31,(a0)+		;backup timer b data
+
+	moveq	#0,d0
+	lea	$fffffa00.w,a0
+	movep.w	d0,$07(a0)
+	movep.w	d0,$13(a0)
+
+
+piccy	movem.l	picture+2,d0-d7
+	movem.l	d0-d7,$ff8240
+
+	move.l 	#screen,d0	;get screen address
+	clr.b 	d0			;round to 256 byte boundary
+	move.l	d0,a0		;copy to a0
+	clr.b	$ff820d		;clear vid address low byte (ste)
+	lsr.l	#8,d0
+	move.b	d0,$ff8203	;set vid address mid byte
+	lsr.w	#8,d0
+	move.b	d0,$ff8201	;set vid address high byte
+
+	move.l	#picture+34,a1	;skip header and palette data
+	move.l	#(32000/4)-1,d0
+
+.loop1	move.l	(a1)+,(a0)+		;copy pic to screen
+	dbf	d0,.loop1
+	move.l	#((160*10)/4)-1,d0
+
+.loop2	move.l	#0,(a0)+
+	dbf	d0,.loop2
+	move.l	#picture+34,a1
+	move.l	#((160*78)/4)-1,d0
 	rts
 
-new_70	addq.w #1,vblcount		;increment vbl counter
-	movem.l	a0-a4/d0-d6,-(sp)
-	jsr	replay+12
-	movem.l	(sp)+,a0-a4/d0-d6
+*** VBL Routine ***
+vbl
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	move.w #$700,$ffff8240.w	;bg color red
+
+	addq.w #1,vblcount
+	jsr music_play
+
+	move.w #$000,$ffff8240.w	;bg color black
+
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rte
 
-mouseoff	move.l	#moff,-(a7)
-	clr.w	-(a7)
-	move.w	#$19,-(a7)
-	trap	#14
-	addq.l	#8,a7
-	dc.w	$a00a
+
+music_init:
+	jsr	music_lance_pt50_init
 	rts
 
-mouseon	move.l	#mon,-(a7)
-	clr.w	-(a7)
-	move.w	#$19,-(a7)
-	trap	#14
-	addq.l	#8,a7
-	dc.w	$a009
+music_deinit:
+	jsr	music_lance_pt50_exit
 	rts
 
-moff	dc.w	$1212
-mon	dc.w	$0808
+music_play:
+	jsr	music_lance_pt50_play
+	rts
+
+
+*** Next MOD
+nextmod:
+	lea 13(a6),a6	; move on 13 characters, so one filename
+	tst.b (a6)		; is it a zero?
+	bne.s .tryload 	; no, so try loading the filename
+	lea filetab,a6  ; otherwise loop back to first file in table
+	bra .tryload
+
+.tryload
+	bsr loadmod
+	bsr lzdepack
+	bsr music_init
+	move.l	#vbl,$70
+	bra mainloop
+*** End  next
+
+
 
 loadmod bsr getsize
 	move.l	#lz7mod,filebuffer
@@ -240,7 +203,7 @@ loader:
 *** Uncompress LZ77 packed picture
 lzdepack:
 	lea lz7mod,a0
-	lea music,a1
+	lea mt_data,a1
 	bsr lz77
 	rts
 *** End decompress
@@ -318,6 +281,9 @@ a set a+8
 	rts
 
 	include "lz77.s"
+	include	'initlib.s'
+	include	'pt_src50.s'		;Protracker player, Lance 50 kHz (STe)
+
 
         section	data
 
@@ -327,8 +293,8 @@ filelength:	dc.l	0
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
-filetab:		dc.b 	'bignum.lz7',0,'  '
-			dc.b 	'chipsupp.lz7',0,''
+filetab:		;dc.b 	'bignum.lz7',0,'  '
+			;dc.b 	'chipsupp.lz7',0,''
 			dc.b 	'dah.lz7',0,'     '
 			dc.b 	'dboned.lz7',0,'  '
 			dc.b 	'dro.lz7',0,'     '
@@ -355,11 +321,9 @@ filetab:		dc.b 	'bignum.lz7',0,'  '
 			even
 *** end of filenames
 
-;music	incbin	dah.mod,0
-m_end	even
 
 picture	incbin	ancients.pi1
-replay	incbin	ninja342.bin
+
 FONT8_8	incbin	FONT8_8.DAT
 	even
 COUNTER:	dc.w	$0
@@ -380,24 +344,21 @@ TEXT:
         section bss
         
         ds.b	256
+
 screen	ds.b	160*288
-save_screenadr 	ds.l 	1
 screen_adr:	ds.l 	1
-screen_adr2:	ds.l 	1
+screen_adr2:	ds.l	1
+dta:		ds.b    44	;dta block about file info
 vblcount: 	ds.w	1
-dta:	ds.b    44							;dta block about file info
-old_resolution:	ds.w 	1
-save_stack	ds.l  	1
-old_palette	ds.l	8
 lz7mod		ds.b	57000
-music		ds.b    57000
+mt_data	ds.w 	57000
+	ds.w	31*640/2		;These zeroes are necessary!
+
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
-old_sp	ds.l	1
-old_70	ds.l	1
-old_a07	ds.b	1
-old_a13	ds.b	1
-old_a15	ds.b	1
+
+backup	ds.b	14
+old_vbl	ds.l	1
 	even
 
