@@ -173,7 +173,7 @@ mtloop2	move.b	(a1)+,d1
 	moveq	#30,d0
 	moveq	#0,d2
 	lea	42(a0),a0
-mtloop3	;clr.l	(a2)
+mtloop3
 	move.l	a2,d1
 	add.l	d2,d1
 	move.l	d1,(a1)+
@@ -186,8 +186,10 @@ mtloop3	;clr.l	(a2)
 	bne.s	.mt_no_test
 	cmp.w	#1,6(a0)
 	bhi.s	.mt_no_test
-	subq.w	#1,6(a0)
-.mt_no_test	add.l	#30,a0
+	clr.w	6(a0)
+
+.mt_no_test
+	add.l	#30,a0
 	dbra	d0,mtloop3
 	add.w	d2,a2
 	lea	mt_module_end,a1
@@ -213,7 +215,7 @@ mt_init_loops	sub.w	#30,a0
 .mt_just_loop
 	moveq	#0,d0
 	move.w	6(a0),d0
-	bne.s  .mt_yes_loop
+	bne.s	.mt_yes_loop
 
 	move.w	#640/4-1,d0
 .mt_clear_loop
@@ -224,9 +226,8 @@ mt_init_loops	sub.w	#30,a0
 .mt_yes_loop
 	moveq.l	#0,d1
 	move.w	4(a0),d1
-	move.w	d1,d2
-	add.w	d0,d2
-	move.w	d2,(a0)
+	add.w	d1,d0
+	move.w	d0,(a0)
 
 	add.l	d1,d1
 	lea	(a2,d1.l),a4
@@ -423,7 +424,7 @@ mt_trenoc
 	move.l	n_start(a6),mt_sample_point(a5)	; set start
 	moveq	#0,d0
 	move.w	n_replen(a6),d0		; set length
-	cmp.w	#2,d0
+	cmp.w	#1,d0
 	bls.s	.no_loop
 
 	add.l	d0,d0
@@ -932,6 +933,8 @@ mt_patternbreak
 mt_setspeed
 	move.b	3(a6),d0
 	beq	mt_return2
+	cmp	#$20,d0
+	bhs	mt_return2
 	clr.b	mt_counter
 	move.b	d0,mt_speed
 	rts
