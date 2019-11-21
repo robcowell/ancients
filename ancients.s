@@ -295,7 +295,7 @@ filelength:	dc.l	0
 **  '12345678.123',0,''	; 12 characters per entry
 filetab:		;dc.b 	'bignum.lz7',0,'  '
 			;dc.b 	'chipsupp.lz7',0,''
-			dc.b 	'dah.lz7',0,'     '
+			;dc.b 	'dah.lz7',0,'     '
 			dc.b 	'dboned.lz7',0,'  '
 			dc.b 	'dro.lz7',0,'     '
 			dc.b 	'epiclove.lz7',0,''
