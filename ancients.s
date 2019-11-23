@@ -125,21 +125,19 @@ music_play:
 
 *** Next MOD
 nextmod:
-	;jsr music_lance_pt50_exit
+	jsr music_deinit
+
+	lea 13(a6),a6	; move on 13 characters, so one filename
+	tst.b (a6)		; is it a zero?
+	bne.s .tryload 	; no, so try loading the filename
+	lea filetab,a6  ; otherwise loop back to first file in table
+	bra .tryload
+
+.tryload
+	bsr loadmod
+	bsr lzdepack
+	bsr music_init
 	bra mainloop
-
-;	lea 13(a6),a6	; move on 13 characters, so one filename
-;	tst.b (a6)		; is it a zero?
-;	bne.s .tryload 	; no, so try loading the filename
-;	lea filetab,a6  ; otherwise loop back to first file in table
-;	bra .tryload
-
-;.tryload
-;	bsr loadmod
-;	bsr lzdepack
-;	bsr music_init
-;	move.l	#vbl,$70
-;	bra mainloop
 *** End  next
 
 
