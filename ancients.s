@@ -1,17 +1,16 @@
-	opt	o+,s-
 
 	section text
 
 	jsr initialise
 	jsr init
+
 	bclr #0,$484
 	
 	lea filetab,a6
 	bsr loadmod
 	bsr lzdepack
-	bsr music_init
 
-	move.l	$70,old_vbl
+	bsr music_init
 	move.l	#vbl,$70
 
 	jsr piccy
@@ -22,25 +21,29 @@ mainloop:	tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
-		move.l	screen_adr,d0			;swap screens
-		move.l	screen_adr2,screen_adr		;doublebuffer
-		move.l	d0,screen_adr2			;
+;		move.l	screen_adr,d0			;swap screens
+;		move.l	screen_adr2,screen_adr		;doublebuffer
+;		move.l	d0,screen_adr2			;
 		
-		bsr scroller
+;		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+;		bsr scroller
+;		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
 		beq 	nextmod
 
 		cmp.b	#$01,$fffffc02.w 	;Escape?
-		beq		exit				; no, keep looping
+		beq	exit			;no, keep looping
 
 		bra mainloop
 
 
 *** Cleanup
 
-exit	jsr music_deinit
+exit:	
+	jsr music_deinit
 	bset #0,$484.w
+
 	move.l	#backup,a0
 	move.l	(a0)+,$70		;restore vector $70 (vbl)
 	move.l	(a0)+,$120		;restore vector $120 (timer b)
@@ -52,7 +55,7 @@ exit	jsr music_deinit
 
 	jsr restore
 
-	clr.w -(sp)			;exit
+pterm	clr.w -(sp)			;exit
 	trap #1
 
 init
@@ -63,12 +66,8 @@ init
 	move.b	$fffa13,(a0)+		;backup mask a
 	move.b	$fffa15,(a0)+		;backup mask b
 	move.b	$fffa1b,(a0)+		;backup timer b control
-	move.b	$fffa31,(a0)+		;backup timer b data
-
-	moveq	#0,d0
-	lea	$fffffa00.w,a0
-	movep.w	d0,$07(a0)
-	movep.w	d0,$13(a0)
+	move.b	$fffa21,(a0)+		;backup timer b data
+	rts
 
 
 piccy	movem.l	picture+2,d0-d7
@@ -98,10 +97,11 @@ piccy	movem.l	picture+2,d0-d7
 
 *** VBL Routine ***
 vbl
+	addq.w #1,vblcount
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	move.w #$700,$ffff8240.w	;bg color red
 
-	addq.w #1,vblcount
+	
 	jsr music_play
 
 	move.w #$000,$ffff8240.w	;bg color black
@@ -125,18 +125,21 @@ music_play:
 
 *** Next MOD
 nextmod:
-	lea 13(a6),a6	; move on 13 characters, so one filename
-	tst.b (a6)		; is it a zero?
-	bne.s .tryload 	; no, so try loading the filename
-	lea filetab,a6  ; otherwise loop back to first file in table
-	bra .tryload
-
-.tryload
-	bsr loadmod
-	bsr lzdepack
-	bsr music_init
-	move.l	#vbl,$70
+	;jsr music_lance_pt50_exit
 	bra mainloop
+
+;	lea 13(a6),a6	; move on 13 characters, so one filename
+;	tst.b (a6)		; is it a zero?
+;	bne.s .tryload 	; no, so try loading the filename
+;	lea filetab,a6  ; otherwise loop back to first file in table
+;	bra .tryload
+
+;.tryload
+;	bsr loadmod
+;	bsr lzdepack
+;	bsr music_init
+;	move.l	#vbl,$70
+;	bra mainloop
 *** End  next
 
 
@@ -293,9 +296,9 @@ filelength:	dc.l	0
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
-filetab:		;dc.b 	'bignum.lz7',0,'  '
-			;dc.b 	'chipsupp.lz7',0,''
-			;dc.b 	'dah.lz7',0,'     '
+filetab:		dc.b 	'bignum.lz7',0,'  '
+			dc.b 	'chipsupp.lz7',0,''
+			dc.b 	'dah.lz7',0,'     '
 			dc.b 	'dboned.lz7',0,'  '
 			dc.b 	'dro.lz7',0,'     '
 			dc.b 	'epiclove.lz7',0,''
@@ -345,12 +348,14 @@ TEXT:
         
         ds.b	256
 
+save_stack:	ds.l 	1
+save_screenadr:	ds.l	1
 screen	ds.b	160*288
 screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
 vblcount: 	ds.w	1
-lz7mod		ds.b	57000
+lz7mod		ds.w	57000
 mt_data	ds.w 	57000
 	ds.w	31*640/2		;These zeroes are necessary!
 
