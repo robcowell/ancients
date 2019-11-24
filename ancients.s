@@ -10,7 +10,10 @@
 	bsr loadmod
 	bsr lzdepack
 
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	bsr music_init
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
 	move.l	#vbl,$70
 
 	jsr piccy
@@ -21,13 +24,13 @@ mainloop:	tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
-;		move.l	screen_adr,d0			;swap screens
-;		move.l	screen_adr2,screen_adr		;doublebuffer
-;		move.l	d0,screen_adr2			;
+		move.l	screen_adr,d0			;swap screens
+		move.l	screen_adr2,screen_adr		;doublebuffer
+		move.l	d0,screen_adr2			;
 		
-;		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-;		bsr scroller
-;		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		bsr scroller
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
 		beq 	nextmod
@@ -41,8 +44,12 @@ mainloop:	tst.w	vblcount			;Wait VBL
 *** Cleanup
 
 exit:	
+	move.l	#backup,a0
+	move.l	(a0)+,$70		;restore vector $70 (vbl)
+	
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_deinit
-	bset #0,$484.w
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	move.l	#backup,a0
 	move.l	(a0)+,$70		;restore vector $70 (vbl)
@@ -57,6 +64,8 @@ exit:
 
 pterm	clr.w -(sp)			;exit
 	trap #1
+	addq.l #2,sp
+
 
 init
 	move.l	#backup,a0
@@ -98,33 +107,42 @@ piccy	movem.l	picture+2,d0-d7
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+
 	move.w #$700,$ffff8240.w	;bg color red
 
-	
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_play
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	move.w #$000,$ffff8240.w	;bg color black
 
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rte
 
 
 music_init:
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_init
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rts
 
 music_deinit:
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_exit
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rts
 
 music_play:
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_play
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rts
 
 
 *** Next MOD
 nextmod:
+	move.l	#backup,a0
+	move.l	(a0)+,$70		;restore vector $70 (vbl)
+
 	jsr music_deinit
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
@@ -135,8 +153,14 @@ nextmod:
 
 .tryload
 	bsr loadmod
+	
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	bsr lzdepack
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
 	bsr music_init
+	
+	move.l	#vbl,$70
 	bra mainloop
 *** End  next
 
@@ -353,8 +377,8 @@ screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
 vblcount: 	ds.w	1
-lz7mod		ds.w	57000
-mt_data	ds.w 	57000
+lz7mod		ds.w	64000
+mt_data	ds.w 	64000
 	ds.w	31*640/2		;These zeroes are necessary!
 
 Line_scroll:	ds.b	20*2+1

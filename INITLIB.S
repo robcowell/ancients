@@ -90,9 +90,10 @@ enableMouse:
 	beq.s	.z
 	move.b	d0,$fffffc02.w
 
-* exit
-;	clr.w	-(sp)			; Bye
-;	trap	#1
+	move.l	old_stack,-(sp)		;
+	move.w	#32,-(sp)			;
+	trap	#1				;
+	addq.l	#6,sp		
 	
 	rts
 		
