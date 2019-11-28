@@ -44,8 +44,10 @@ mainloop:	tst.w	vblcount			;Wait VBL
 *** Cleanup
 
 exit:	
+	move.w	#$2700,sr		;ints off
 	move.l	#backup,a0
 	move.l	(a0)+,$70		;restore vector $70 (vbl)
+	move.w	#$2300,sr		;ints on
 	
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_deinit
@@ -64,7 +66,6 @@ exit:
 
 pterm	clr.w -(sp)			;exit
 	trap #1
-	addq.l #2,sp
 
 
 init
