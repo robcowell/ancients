@@ -16,6 +16,7 @@
 
 	move.l	#vbl,$70
 
+	jsr depackpic
 	jsr piccy
 	
         
@@ -109,13 +110,9 @@ piccy	movem.l	picture+2,d0-d7
 vbl
 	addq.w #1,vblcount
 
-	move.w #$700,$ffff8240.w	;bg color red
-
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	move.w #$000,$ffff8240.w	;bg color black
 
 	rte
 
@@ -162,6 +159,7 @@ nextmod:
 	bsr music_init
 	
 	move.l	#vbl,$70
+	jsr piccy			; patch image back up
 	bra mainloop
 *** End  next
 
@@ -234,6 +232,12 @@ lzdepack:
 	rts
 *** End decompress
 
+depackpic:
+	lea lz7pic,a0
+	lea picture,a1
+	bsr lz77
+	rts
+
 Scroll_ROX:
 	lea	Buffer_scroll,a0
  rept	8
@@ -292,8 +296,8 @@ scroller:
 .put_scrolling:
 	lea	Line_scroll,a0
 	movea.l	screen_adr,a1
-	add.w	#160*191,a1                ; Add 180 lines to start at the end of the screen
-	addq.w	#6,a1                    ; Add plane for the color
+	add.w	#100*191,a1                ; Add 180 lines to start at the end of the screen
+	addq.w	#4,a1                    ; Add plane for the color
 	moveq	#7,d0                      ; 7 lines copied
 .loop:
 a set 0
@@ -317,38 +321,70 @@ filename:	dc.l	0
 filebuffer:	dc.l	0
 filelength:	dc.l	0
 
+*** TUNE LIST ***
+* flib
+* roof duct inc.
+* real chipper supper
+* epic love
+* dah
+* heavy water
+* woo hoo doo goo boo
+* vak8ed looks
+* d-boned
+* hope, joy & fleas
+* happy times
+* 16th folk song ii
+* weeeeeeeeeeeeeeeeed
+* screw levity
+* rounderbout fishy
+* dro, hells mom
+* turnips
+* lifes warmth
+* schizo affected
+* rats, bats & fleas
+* more fleas
+* slapping hippos
+* happy vibes
+* big numbers
+***
+
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
-filetab:		dc.b 	'bignum.lz7',0,'  '
-			dc.b 	'chipsupp.lz7',0,''
-			dc.b 	'dah.lz7',0,'     '
-			dc.b 	'dboned.lz7',0,'  '
-			dc.b 	'dro.lz7',0,'     '
-			dc.b 	'epiclove.lz7',0,''
-			dc.b 	'flib.lz7',0,'    '
-			dc.b 	'folk.lz7',0,'    '
-			dc.b 	'hippos.lz7',0,'  '
-			dc.b 	'hopeflea.lz7',0,''
-			dc.b 	'hppytime.lz7',0,''
-			dc.b 	'hppyvibe.lz7',0,''
-			dc.b 	'hvywater.lz7',0,''
-			dc.b 	'levity.lz7',0,'  '
-			dc.b 	'lifewarm.lz7',0,''
-			dc.b 	'moreflea.lz7',0,''
-			dc.b 	'ratsbats.lz7',0,''
+filetab:		dc.b 	'flib.lz7',0,'    '
 			dc.b 	'roofduct.lz7',0,''
-			dc.b 	'rounderb.lz7',0,''
-			dc.b 	'schizo.lz7',0,'  '
-			dc.b 	'turnips.lz7',0,' '
-			dc.b 	'vak8ed.lz7',0,'  '
-			dc.b 	'weeeeeee.lz7',0,''
+			dc.b 	'chipsupp.lz7',0,''
+			dc.b 	'epiclove.lz7',0,''
+			dc.b 	'dah.lz7',0,'     '
+			dc.b 	'hvywater.lz7',0,''
 			dc.b 	'woohoo.lz7',0,'  '
+			dc.b 	'vak8ed.lz7',0,'  '
+			dc.b 	'dboned.lz7',0,'  '
+			dc.b 	'hopeflea.lz7',0,''
+			dc.b 	'hppytime.lz7',0,''			
+			dc.b 	'folk.lz7',0,'    '
+			dc.b 	'weeeeeee.lz7',0,''
+			dc.b 	'levity.lz7',0,'  '
+			dc.b 	'rounderb.lz7',0,''
+			dc.b 	'dro.lz7',0,'     '
+			dc.b 	'turnips.lz7',0,' '
+			dc.b 	'lifewarm.lz7',0,''
+			dc.b 	'schizo.lz7',0,'  '
+			dc.b 	'ratsbats.lz7',0,''
+			dc.b 	'moreflea.lz7',0,''
+			dc.b 	'hippos.lz7',0,'  '
+			dc.b 	'hppyvibe.lz7',0,''
+			dc.b 	'bignum.lz7',0,'  '
 			dc.b 	0
 			even
 *** end of filenames
 
 
-picture	incbin	ancients.pi1
+
+
+
+lz7pic		incbin	ancients.lz7
+lz7title	incbin	shiny.lz7
+lz7credits	incbin 	credits.lz7
 
 FONT8_8	incbin	FONT8_8.DAT
 	even
@@ -378,10 +414,10 @@ screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
 vblcount: 	ds.w	1
-lz7mod		ds.w	64000
-mt_data	ds.w 	64000
-	ds.w	31*640/2		;These zeroes are necessary!
-
+lz7mod		ds.b	64000
+mt_data		ds.b 	64000
+		ds.w	31*640/2		;These zeroes are necessary!
+picture:	ds.b 32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
