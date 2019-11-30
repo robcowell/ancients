@@ -123,9 +123,36 @@ mt_check_dummy	rs.w	1
 
 	section	text
 
+music_lance_pt50_stop:
+	movem.l	d0-d7/a0-a6,-(sp)
+	clr.b	mt_speed
+	lea	mt_channel_0,a0
+	bsr.s	mt_clear_channel
+	lea	mt_channel_1,a0
+	bsr.s	mt_clear_channel
+	lea	mt_channel_2,a0
+	bsr.s	mt_clear_channel
+	lea	mt_channel_3,a0
+	bsr.s	mt_clear_channel
+
+	movem.l	(sp)+,d0-d7/a0-a6
+	rts
+
+mt_clear_channel
+	clr.l	(a0)+
+	clr.l	(a0)+
+	clr.l	(a0)+
+	clr.w	(a0)+
+	move.w	#$3ff,(a0)+
+	clr.l	(a0)+
+	rts
+
 music_lance_pt50_init:
-		bsr	mt_init
-		rts
+	bsr	mt_init_Paula
+
+music_lance_mod_init:
+	bsr	mt_init
+	rts
 
 music_lance_pt50_exit:
 		bsr	mt_stop_Paula
@@ -163,7 +190,7 @@ mtloop2	move.b	(a1)+,d1
 	bgt.s	mtloop
 	dbra	d0,mtloop2
 	addq.b	#1,d2
-		
+
 	lea	mt_samplestarts(pc),a1
 	asl.l	#8,d2
 	asl.l	#2,d2
@@ -252,11 +279,14 @@ mt_init_loops	sub.w	#30,a0
 	move.b	d0,(a0)+
 	cmp.l	a0,a1
 	bne.s	.mt_shift_down
+	rts
 
-	bra.w	mt_init_Paula
+mt_music
+	tst.b	mt_speed
+	beq.s	.rts
 
+	movem.l	d0-d4/a0-a6,-(sp)
 
-mt_music	movem.l	d0-d4/a0-a6,-(sp)
 	addq.b	#1,mt_counter
 	move.b	mt_counter(pc),d0
 	cmp.b	mt_speed(pc),d0
@@ -266,6 +296,7 @@ mt_music	movem.l	d0-d4/a0-a6,-(sp)
 	beq.s	mt_getnewnote
 	bsr.s	mt_nonewallchannels
 	bra	mt_dskip
+.rts	rts
 
 mt_nonewnote
 	bsr.s	mt_nonewallchannels
@@ -591,7 +622,7 @@ mt_portauskip
 	and.w	#$0fff,d0
 	move.w	d0,mt_period(a5)
 	rts
- 
+
 mt_fineportadown
 	tst.b	mt_counter
 	bne	mt_return2
@@ -1170,7 +1201,7 @@ mt_funkend
 	movem.l	(sp)+,a0/d1
 	rts
 
-mt_init_Paula	
+mt_init_Paula
 	bsr.s	mt_make_freq
 	bsr	mt_make_tables
 	bsr	mt_make_frame_f
