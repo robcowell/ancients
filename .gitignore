@@ -1,2 +1,4 @@
 /floppy
 /originals
+*.tos
+*.o
