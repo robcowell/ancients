@@ -10,34 +10,28 @@
 	bsr loadmod
 	bsr lzdepack
 
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr	music_lance_pt50_init
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	move.l	#vbl,$70
-
-	jsr depackpic
-
 	move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
 	clr.b	d0		; round to 256 bytes
 	move.l	d0,screen_adr
 	move.l	d0,screen_adr2
 
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	jsr	music_lance_pt50_init
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+	jsr depackpic
 	jsr piccy
 
-mainloop:	tst.w	vblcount			;Wait VBL
+	move.l	#vbl,$70
 
+mainloop:
+		tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
-		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-
-		move.l	screen_adr,d0			;swap screens
-		move.l	screen_adr2,screen_adr		;doublebuffer
-		move.l	d0,screen_adr2			;
-
-		bsr	scroller
-		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+;		move.l	screen_adr,d0			;swap screens
+;		move.l	screen_adr2,screen_adr	;doublebuffer
+;		move.l	d0,screen_adr2			;
 
 		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
 		beq	nextmod
@@ -61,8 +55,8 @@ exit:
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	move.l	#backup,a0
-	move.l	(a0)+,$70		;restore vector $70 (vbl)
-	move.l	(a0)+,$120		;restore vector $120 (timer b)
+	move.l	(a0)+,$70			;restore vector $70 (vbl)
+	move.l	(a0)+,$120			;restore vector $120 (timer b)
 	move.b	(a0)+,$fffa07		;restore enable a
 	move.b	(a0)+,$fffa13		;restore mask a
 	move.b	(a0)+,$fffa15		;restore mask b
@@ -77,8 +71,8 @@ pterm	clr.w -(sp)			;exit
 
 init
 	move.l	#backup,a0
-	move.l	$70,(a0)+		;backup vector $70 (VBL)
-	move.l	$120,(a0)+		;backup vector $120 (timer b)
+	move.l	$70,(a0)+			;backup vector $70 (VBL)
+	move.l	$120,(a0)+			;backup vector $120 (timer b)
 	move.b	$fffa07,(a0)+		;backup enable a
 	move.b	$fffa13,(a0)+		;backup mask a
 	move.b	$fffa15,(a0)+		;backup mask b
@@ -91,13 +85,12 @@ piccy	movem.l	picture+2,d0-d7
 	movem.l	d0-d7,$ff8240
 
 	move.l 	screen_adr,d0	;get screen address
-	clr.b 	d0			;round to 256 byte boundary
-	move.l	d0,a0		;copy to a0
-	clr.b	$ff820d		;clear vid address low byte (ste)
+	move.l	d0,a0			;copy to a0
+	clr.b	$ff820d			;clear vid address low byte (ste)
 	lsr.l	#8,d0
-	move.b	d0,$ff8203	;set vid address mid byte
+	move.b	d0,$ff8203		;set vid address mid byte
 	lsr.w	#8,d0
-	move.b	d0,$ff8201	;set vid address high byte
+	move.b	d0,$ff8201		;set vid address high byte
 
 	move.l	#picture+34,a1	;skip header and palette data
 	move.l	#(32000/4)-1,d0
@@ -117,7 +110,8 @@ vbl
 	addq.w #1,vblcount
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr music_play
+	bsr	scroller
+	jsr	music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	rte
@@ -144,12 +138,7 @@ music_play:
 
 *** Next MOD
 nextmod:
-;	move.l	#backup,a0
-;	move.l	(a0)+,$70		;restore vector $70 (vbl)
-
 	jsr	music_lance_pt50_stop
-
-;	jsr music_deinit
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
 	tst.b (a6)		; is it a zero?
@@ -158,41 +147,43 @@ nextmod:
 	bra .tryload
 
 .tryload
-	bsr loadmod
-
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	bsr loadmod
 	bsr lzdepack
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	bsr music_init
 
-	move.l	#vbl,$70
-	jsr piccy			; patch image back up
 	bra mainloop
 *** End  next
 
 
 
 loadmod bsr getsize
-	move.l	#lz7mod,filebuffer
-	move.l	dta+26,filelength
+	move.l	#lz7mod,d0
+	move.l	dta+26,d1
+	sub.l	d1,d0
+	and.w	#$fffc,d0
+
+	move.l	d0,filebuffer
+	move.l	d1,filelength
 	bsr	loader
 	rts
 
 *** Get file size
 getsize:
-	pea dta 					;set up dta buffer
+	pea dta						;set up dta buffer
 	move.w #$1a,-(sp)			;SetDTA function
-	trap #1 					;GemDOS call
-	addq.l #6,sp 				;tidy stack
+	trap #1						;GemDOS call
+	addq.l #6,sp				;tidy stack
 
-	move.w #0,-(sp) 		;attribute value
+	move.w #0,-(sp) 			;attribute value
 	move.l	a6,-(sp)			;file to search for
-	move.w #$4e,-(sp) 			;fsfirst function
-	trap #1 					;GemDOS call
+	move.w #$4e,-(sp)			;fsfirst function
+	trap #1						;GemDOS call
 	addq.l #8,sp 				;tidy stack
 
-	tst d0 						;file found?
+	tst d0						;file found?
 	bne .notfound
 
 	move.w #$2f,-(sp) 			;GetDTA
@@ -211,7 +202,7 @@ getsize:
 
 loader:
 		clr.w	-(sp)					;Open file read only
-		move.l	a6,-(sp)			;Address to filename
+		move.l	a6,-(sp)				;Address to filename
 		move.w	#$3d,-(sp)				;
 		trap	#1						;
 		addq.l	#8,sp					;
@@ -234,9 +225,9 @@ loader:
 
 *** Uncompress LZ77 packed picture
 lzdepack:
-	lea lz7mod,a0
-	lea mt_data,a1
-	bsr lz77
+	move.l	filebuffer,a0
+	lea	mt_data,a1
+	bsr	lz77
 	rts
 *** End decompress
 
@@ -415,8 +406,6 @@ TEXT:
 
         section bss
 
-        ds.b	256
-
 save_stack:	ds.l 	1
 save_screenadr:	ds.l	1
 screen		ds.b	160*288
@@ -425,10 +414,11 @@ screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
 vblcount: 	ds.w	1
-lz7mod		ds.b	64000
 mt_data		ds.b 	64000
 		ds.w	31*640/2		;These zeroes are necessary!
-picture:	ds.b 32034
+lz7mod		; it points to the end of the buffer so we can unpack in-place
+
+picture:	ds.b	32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
@@ -436,4 +426,3 @@ Buffer_scroll:	ds.b	21*8*20
 backup	ds.b	14
 old_vbl	ds.l	1
 	even
-
