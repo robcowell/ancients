@@ -27,7 +27,7 @@
 ; sample. This version is indeed four times faster than my
 ; first replay routine and I hope all you hackers out there
 ; will like my routine and would like to contact me :
-;---------------------------------------------------------- 
+;----------------------------------------------------------
 ;	M�rten R�nge
 ;	Oxelv�gen 6
 ;	524 32 HERRLJUNGA
@@ -221,8 +221,6 @@ mtloop3
 	add.w	d2,a2
 	lea	mt_module_end,a1
 	move.l	a2,(a1)
-	move.b	#6,mt_speed
-	move.b	#6,mt_counter
 	clr.b	mt_songpos
 	clr.w	mt_patternpos
 
@@ -279,6 +277,9 @@ mt_init_loops	sub.w	#30,a0
 	move.b	d0,(a0)+
 	cmp.l	a0,a1
 	bne.s	.mt_shift_down
+
+	move.b	#6,mt_counter
+	move.b	#6,mt_speed
 	rts
 
 mt_music
@@ -2113,7 +2114,7 @@ mt_replay_buf1:	ds.w	1000
 	endc
 
 mt_frame_freq	ds.w	27500
-mt_mix_chunk	ds.w	60877
+mt_mix_chunk	ds.w	61517
 
 		section	text
 
