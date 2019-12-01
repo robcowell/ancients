@@ -16,7 +16,9 @@
 
 	move.l	#vbl,$70
 
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr depackpic
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
         move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
         clr.b	d0		; round to 256 bytes
@@ -26,7 +28,9 @@
 	movem.l	blackpal,d0-d7		;Set palette
 	movem.l	d0-d7,$ffff8240.w		;
 
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr piccy
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	
 
@@ -37,10 +41,11 @@ mainloop:	tst.w	vblcount			;Wait VBL
 		clr.w 	vblcount
 
 		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		
 
-		move.l	screen_adr,d0			;swap screens
-		move.l	screen_adr2,screen_adr		;doublebuffer
-		move.l	d0,screen_adr2			;
+		;move.l	screen_adr,d0			;swap screens
+		;move.l	screen_adr2,screen_adr		;doublebuffer
+		;move.l	d0,screen_adr2			;
 
 		bsr	scroller
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
@@ -123,20 +128,14 @@ vbl
 	addq.w #1,vblcount
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	
-	lea	blackpal,a0		;Fade in palette
-	lea	picture+2,a1		;
-	jsr	component_fade			;
+	lea	blackpal,a0		;Fade start palette
+	lea	picture+2,a1		;Fade end palette
+	jsr	component_fade		; from fade.s
+
 	jsr music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rte
-
-	; wait for VBL
-vsync:
-	move.w #37,-(sp)		; Vsync()
-	trap #14
-	addq.l #2,sp
-	rts
-    
+*** End VBL Routine ***
 
 music_init:
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
