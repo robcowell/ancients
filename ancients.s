@@ -18,12 +18,18 @@
 
 	jsr depackpic
 
-	move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
-	clr.b	d0		; round to 256 bytes
-	move.l	d0,screen_adr
-	move.l	d0,screen_adr2
+        move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
+        clr.b	d0		; round to 256 bytes
+        move.l	d0,screen_adr
+        move.l	d0,screen_adr2
+
+	movem.l	blackpal,d0-d7		;Set palette
+	movem.l	d0-d7,$ffff8240.w		;
 
 	jsr piccy
+
+	
+
 
 mainloop:	tst.w	vblcount			;Wait VBL
 
@@ -87,8 +93,8 @@ init
 	rts
 
 
-piccy	movem.l	picture+2,d0-d7
-	movem.l	d0-d7,$ff8240
+piccy
+    
 
 	move.l 	screen_adr,d0	;get screen address
 	clr.b 	d0			;round to 256 byte boundary
@@ -115,13 +121,22 @@ piccy	movem.l	picture+2,d0-d7
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
-
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	
+	lea	blackpal,a0		;Fade in palette
+	lea	picture+2,a1		;
+	jsr	component_fade			;
 	jsr music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
 	rte
 
+	; wait for VBL
+vsync:
+	move.w #37,-(sp)		; Vsync()
+	trap #14
+	addq.l #2,sp
+	rts
+    
 
 music_init:
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
@@ -240,11 +255,25 @@ lzdepack:
 	rts
 *** End decompress
 
+depacktitle:
+    lea lz7title,a0
+    lea picture,a1
+    bsr lz77
+    rts
+
+depackcreds:
+    lea lz7credits,a0
+    lea picture,a1
+    bsr lz77
+    rts
+
 depackpic:
 	lea lz7pic,a0
 	lea picture,a1
 	bsr lz77
 	rts
+
+
 
 Scroll_ROX:
 	lea	Buffer_scroll,a0
@@ -307,7 +336,7 @@ scroller:
 
 	; Add 186 lines to start at the bottom of the screen
 	; plus 6 to get the right bitplane
-	add.w	#(160*186)+6,a1
+	add.w	#(160*192+6),a1
 	moveq	#7,d0			; 8 lines copied
 .loop:
 a set 0
@@ -320,6 +349,7 @@ a set a+8
 	dbf	d0,.loop
 	rts
 
+	include "fade.s"
 	include "lz77.s"
 	include	'INITLIB.S'
 	include	'pt_src50.s'		;Protracker player, Lance 50 kHz (STe)
@@ -330,6 +360,7 @@ a set a+8
 filename:	dc.l	0
 filebuffer:	dc.l	0
 filelength:	dc.l	0
+blackpal:	dcb.w	16,$0000			;Black palette
 
 *** TUNE LIST ***
 * flib
@@ -395,6 +426,8 @@ filetab:		dc.b 	'flib.lz7',0,'    '
 lz7pic		incbin	ancients.lz7
 lz7title	incbin	shiny.lz7
 lz7credits	incbin 	credits.lz7
+
+fades        incbin mainin.fad
 
 FONT8_8	incbin	FONT8_8.DAT
 	even
