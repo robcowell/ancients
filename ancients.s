@@ -399,6 +399,11 @@ TEXT:
 	dc.b 	"A little music disk showcasing the talents of our musician, Bextula of RiFT    "
 	dc.b 	"Over the years, our Bex has gone by a number of handles - Bassline, Bex, Sick Man, Meek and more -  "
 	dc.b 	"but one thing that has remained the same is the quality of the MODs produced     "
+	dc.b 	"Now over to our amazing musician Bex, whose fantastic tunes you're listening to, for a few words....."
+	dc.b	"hey guys. This is bextula speaking into Google assistant (not really but let's pretend I'm brave enough). "
+	dc.b	"Just want to send a few greets out to the following ppl: all in RiFT (obvs), all in SLP, all in C0SINE, "
+	dc.b	"all in DSR, Motion of Artstate, Raizor of (whoes he with now?), H0ffman of logicoma, and of course the "
+	dc.b	"loving memory of Giz/DSR. We still miss him, and he did so love a few of these tunes. Oh and Meaty. Still miss u too babe"
 	dc.b 	"                                           " 		;bit of empty space before we wrap - LEAVE IT
 	dc.b	$FF,$0												; end of text marker - LEAVE IT
 
