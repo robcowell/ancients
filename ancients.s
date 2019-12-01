@@ -10,31 +10,38 @@
 	bsr loadmod
 	bsr lzdepack
 
-	move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
-	clr.b	d0		; round to 256 bytes
-	move.l	d0,screen_adr
-	move.l	d0,screen_adr2
-
-	movem.l	blackpal,d0-d7		;Set palette
-	movem.l	d0-d7,$ffff8240.w
-
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_init
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
-	jsr depackpic
-	jsr piccy
-
 	move.l	#vbl,$70
+
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	jsr depackpic
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+        move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
+        clr.b	d0		; round to 256 bytes
+        move.l	d0,screen_adr
+        move.l	d0,screen_adr2
+
+	movem.l	blackpal,d0-d7		;Set palette
+	movem.l	d0-d7,$ffff8240.w		;
 
 mainloop:
 		tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
-;		move.l	screen_adr,d0			;swap screens
-;		move.l	screen_adr2,screen_adr	;doublebuffer
-;		move.l	d0,screen_adr2			;
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		
+
+		;move.l	screen_adr,d0			;swap screens
+		;move.l	screen_adr2,screen_adr		;doublebuffer
+		;move.l	d0,screen_adr2			;
+
+		bsr	scroller
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
 		beq	nextmod
@@ -84,8 +91,8 @@ init
 	rts
 
 
-piccy	movem.l	picture+2,d0-d7
-	movem.l	d0-d7,$ff8240
+piccy
+    
 
 	move.l 	screen_adr,d0	;get screen address
 	move.l	d0,a0			;copy to a0
@@ -111,18 +118,18 @@ piccy	movem.l	picture+2,d0-d7
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
-
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	
 	lea	blackpal,a0		;Fade start palette
 	lea	picture+2,a1		;Fade end palette
 	jsr	component_fade		; from fade.s
 
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	jsr music_play
 	bsr	scroller
 	jsr	music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
 	rte
-
+*** End VBL Routine ***
 
 music_init:
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
@@ -238,11 +245,25 @@ lzdepack:
 	rts
 *** End decompress
 
+depacktitle:
+    lea lz7title,a0
+    lea picture,a1
+    bsr lz77
+    rts
+
+depackcreds:
+    lea lz7credits,a0
+    lea picture,a1
+    bsr lz77
+    rts
+
 depackpic:
 	lea lz7pic,a0
 	lea picture,a1
 	bsr lz77
 	rts
+
+
 
 Scroll_ROX:
 	lea	Buffer_scroll,a0
@@ -305,7 +326,7 @@ scroller:
 
 	; Add 186 lines to start at the bottom of the screen
 	; plus 6 to get the right bitplane
-	add.w	#(160*186)+6,a1
+	add.w	#(160*192+6),a1
 	moveq	#7,d0			; 8 lines copied
 .loop:
 a set 0
@@ -329,6 +350,7 @@ a set a+8
 filename:	dc.l	0
 filebuffer:	dc.l	0
 filelength:	dc.l	0
+blackpal:	dcb.w	16,$0000			;Black palette
 
 *** TUNE LIST ***
 * flib
@@ -394,6 +416,8 @@ filetab:		dc.b 	'flib.lz7',0,'    '
 lz7pic		incbin	ancients.lz7
 lz7title	incbin	shiny.lz7
 lz7credits	incbin 	credits.lz7
+
+fades        incbin mainin.fad
 
 FONT8_8	incbin	FONT8_8.DAT
 	even
