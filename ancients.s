@@ -15,6 +15,9 @@
 	move.l	d0,screen_adr
 	move.l	d0,screen_adr2
 
+	movem.l	blackpal,d0-d7		;Set palette
+	movem.l	d0-d7,$ffff8240.w
+
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_init
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
@@ -108,6 +111,10 @@ piccy	movem.l	picture+2,d0-d7
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
+
+	lea	blackpal,a0		;Fade start palette
+	lea	picture+2,a1		;Fade end palette
+	jsr	component_fade		; from fade.s
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	bsr	scroller
@@ -311,6 +318,7 @@ a set a+8
 	dbf	d0,.loop
 	rts
 
+	include "fade.s"
 	include "lz77.s"
 	include	'INITLIB.S'
 	include	'pt_src50.s'		;Protracker player, Lance 50 kHz (STe)
@@ -427,6 +435,7 @@ picture:	ds.b	32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
+blackpal:	dcb.w	16,$0000
 
 backup	ds.b	14
 old_vbl	ds.l	1
