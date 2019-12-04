@@ -459,7 +459,6 @@ picture:	ds.b	32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
 Buffer_scroll:	ds.b	21*8*20
-blackpal:	dcb.w	16,$0000
 
 backup	ds.b	14
 old_vbl	ds.l	1
