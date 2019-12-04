@@ -28,23 +28,43 @@
 	movem.l	blackpal,d0-d7		;Set palette
 	movem.l	d0-d7,$ffff8240.w		;
 
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	jsr piccy
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	;jsr initselector
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+
 mainloop:
 		tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
 		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-		
 
-		;move.l	screen_adr,d0			;swap screens
-		;move.l	screen_adr2,screen_adr		;doublebuffer
-		;move.l	d0,screen_adr2			;
+		;Blat image palette into indexes
+		movem.l picture+2,d0-d7
+		movem.l d0-d7,$ffff8240.w
 
-		bsr	scroller
+		;Attempt at fade - not working
+		lea	blackpal,a0		;Fade start palette
+		lea	picture+2,a1		;Fade end palette
+		jsr	component_fade		; from fade.s
+
+		move.l	screen_adr,d0			;swap screens
+		move.l	screen_adr2,screen_adr		;doublebuffer
+		move.l	d0,screen_adr2			;
+
+		;bsr	scroller
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
-		cmp.b 	#$39,$fffffc02.w    ; SPACE for next mod
+		cmp.b 	#$50,$fffffc02.w    ; down cursor for next mod
 		beq	nextmod
+
+		cmp.b	#$48,$fffffc02.w       ; up cursor for prev mod
+		beq	prevmod
 
 		cmp.b	#$01,$fffffc02.w 	;Escape?
 		beq	exit			;no, keep looping
@@ -115,18 +135,25 @@ piccy
 	move.l	#((160*78)/4)-1,d0
 	rts
 
+initselector
+	lea selector,a0
+	lea screen_adr,a1
+	move.l #10,d0
+
+row_copy_loop
+	move.w (a0)+,(a1)
+	move.w (a0)+,8(a1)	; next 16 pixels
+        move.w (a0)+,16(a1)
+	lea 160(a1),a1		; next row
+	dbf d0,row_copy_loop
+	rts
+
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	
-	lea	blackpal,a0		;Fade start palette
-	lea	picture+2,a1		;Fade end palette
-	jsr	component_fade		; from fade.s
-
 	jsr music_play
 	bsr	scroller
-	jsr	music_play
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 	rte
 *** End VBL Routine ***
@@ -150,17 +177,28 @@ music_play:
 	rts
 
 
-*** Next MOD
+*** Change MOD
 nextmod:
 	jsr	music_lance_pt50_stop
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
 	tst.b (a6)		; is it a zero?
-	bne.s .tryload 	; no, so try loading the filename
+	bne tryload 	; no, so try loading the filename
 	lea filetab,a6  ; otherwise loop back to first file in table
-	bra .tryload
+	bra tryload
+	rts
 
-.tryload
+prevmod:
+	jsr 	music_lance_pt50_stop
+
+	lea -13(a6),a6
+	tst.b (a6)
+	bne tryload
+	lea filetab,a6
+	bra tryload
+	rts
+
+tryload
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	bsr loadmod
 	bsr lzdepack
@@ -169,7 +207,7 @@ nextmod:
 	bsr music_init
 
 	bra mainloop
-*** End  next
+*** Change  next
 
 
 
@@ -416,8 +454,10 @@ filetab:		dc.b 	'flib.lz7',0,'    '
 lz7pic		incbin	ancients.lz7
 lz7title	incbin	shiny.lz7
 lz7credits	incbin 	credits.lz7
+	even
 
-fades        incbin mainin.fad
+selector 	incbin 	select.dat
+	even
 
 FONT8_8	incbin	FONT8_8.DAT
 	even
