@@ -10,11 +10,9 @@
 	bsr loadmod
 	bsr lzdepack
 
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr	music_lance_pt50_init
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
-	move.l	#vbl,$70
+
+	
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr depackpic
@@ -33,8 +31,15 @@
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	;jsr initselector
+	jsr initselector
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	jsr	music_lance_pt50_init
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+
+	move.l	#vbl,$70
 
 
 mainloop:
@@ -136,14 +141,16 @@ piccy
 	rts
 
 initselector
-	lea selector,a0
-	lea screen_adr,a1
-	move.l #10,d0
+	lea selector,a1
+	lea screen_adr,a0
+	move.l #20,d0
 
 row_copy_loop
 	move.w (a0)+,(a1)
 	move.w (a0)+,8(a1)	; next 16 pixels
-        move.w (a0)+,16(a1)
+       move.w (a0)+,16(a1)
+       move.w (a0)+,24(a1)
+	move.w (a0)+,32(a1)
 	lea 160(a1),a1		; next row
 	dbf d0,row_copy_loop
 	rts
@@ -466,15 +473,15 @@ COUNTER:	dc.w	$0
 TXT_POINTER:	dc.l	TEXT
 
 TEXT:
-	dc.b 	"RiFT are proud to present      "
-	dc.b 	"TECHNOLOGIES OF THE ANCIENTS     "
-	dc.b 	"A little music disk showcasing the talents of our musician, Bextula of RiFT    "
-	dc.b 	"Over the years, our Bex has gone by a number of handles - Bassline, Bex, Sick Man, Meek and more -  "
-	dc.b 	"but one thing that has remained the same is the quality of the MODs produced     "
+	dc.b 	"RiFT are proud to present                    "
+	dc.b 	"TECHNOLOGIES OF THE ANCIENTS                    "
+	dc.b 	"A little music disk showcasing the talents of our musician, Bextula of RiFT                      "
+	dc.b 	"Over the years, our Bex has gone by a number of handles - Bassline, Bex, Sick Man, Meek and more - "
+	dc.b 	"but one thing that has remained the same is the quality of the MODs produced.                    "
 	dc.b 	"Now over to our amazing musician Bex, whose fantastic tunes you're listening to, for a few words....."
 	dc.b	"hey guys. This is bextula speaking into Google assistant (not really but let's pretend I'm brave enough). "
 	dc.b	"Just want to send a few greets out to the following ppl: all in RiFT (obvs), all in SLP, all in C0SINE, "
-	dc.b	"all in DSR, Motion of Artstate, Raizor of (whoes he with now?), H0ffman of logicoma, and of course the "
+	dc.b	"all in DSR, Motion of Artstate, Raizor of (who is he with now?), H0ffman of Logicoma, and of course the "
 	dc.b	"loving memory of Giz/DSR. We still miss him, and he did so love a few of these tunes. Oh and Meaty. Still miss u too babe"
 	dc.b 	"                                           " 		;bit of empty space before we wrap - LEAVE IT
 	dc.b	$FF,$0												; end of text marker - LEAVE IT
