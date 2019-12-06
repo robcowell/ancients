@@ -10,14 +10,6 @@
 	bsr loadmod
 	bsr lzdepack
 
-
-
-	
-
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr depackpic
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
         move.l	#screen+255,d0	; add 255 to round UP not DOWN!!
         clr.b	d0		; round to 256 bytes
         move.l	d0,screen_adr
@@ -27,37 +19,52 @@
 	movem.l	d0-d7,$ffff8240.w		;
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr piccy
+	bsr 	depacktitle
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	jsr initselector
+	move.l #80000,d0
+pause1
+	REPT 400
+	nop
+	ENDR
+	dbf d0,pause1	
+	bsr	depackcreds
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+
+	move.l #800000,d0
+pause2
+	REPT 900
+	nop
+	ENDR
+	dbf d0,pause2	
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	bsr	depackpic
+	bsr initselector
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_init
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
+	
 
 	move.l	#vbl,$70
 
 
 mainloop:
+		addq.l	#1,framecount
+		
 		tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
 		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-
-		;Blat image palette into indexes
-		movem.l picture+2,d0-d7
-		movem.l d0-d7,$ffff8240.w
-
-		;Attempt at fade - not working
-		lea	blackpal,a0		;Fade start palette
-		lea	picture+2,a1		;Fade end palette
-		jsr	component_fade		; from fade.s
-
+		
 		move.l	screen_adr,d0			;swap screens
 		move.l	screen_adr2,screen_adr		;doublebuffer
 		move.l	d0,screen_adr2			;
@@ -127,6 +134,9 @@ piccy
 	lsr.w	#8,d0
 	move.b	d0,$ff8201		;set vid address high byte
 
+	movem.l picture+2,d0-d7     ; palette
+	movem.l d0-d7,$ffff8240
+
 	move.l	#picture+34,a1	;skip header and palette data
 	move.l	#(32000/4)-1,d0
 
@@ -158,6 +168,7 @@ row_copy_loop
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
+
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_play
 	bsr	scroller
@@ -197,11 +208,15 @@ nextmod:
 
 prevmod:
 	jsr 	music_lance_pt50_stop
+	cmp.l #filetab,a6
+	beq.s .wrap
 
 	lea -13(a6),a6
-	tst.b (a6)
-	bne tryload
 	lea filetab,a6
+	bra tryload
+
+.wrap
+	lea filetab_end,a6
 	bra tryload
 	rts
 
@@ -294,18 +309,21 @@ depacktitle:
     lea lz7title,a0
     lea picture,a1
     bsr lz77
+    bsr piccy
     rts
 
 depackcreds:
     lea lz7credits,a0
     lea picture,a1
     bsr lz77
+    bsr piccy
     rts
 
 depackpic:
 	lea lz7pic,a0
 	lea picture,a1
 	bsr lz77
+	bsr piccy
 	rts
 
 
@@ -449,7 +467,7 @@ filetab:		dc.b 	'flib.lz7',0,'    '
 			dc.b 	'moreflea.lz7',0,''
 			dc.b 	'hippos.lz7',0,'  '
 			dc.b 	'hppyvibe.lz7',0,''
-			dc.b 	'bignum.lz7',0,'  '
+filetab_end		dc.b 	'bignum.lz7',0,'  '
 			dc.b 	0
 			even
 *** end of filenames
@@ -481,7 +499,7 @@ TEXT:
 	dc.b 	"Now over to our amazing musician Bex, whose fantastic tunes you're listening to, for a few words....."
 	dc.b	"hey guys. This is bextula speaking into Google assistant (not really but let's pretend I'm brave enough). "
 	dc.b	"Just want to send a few greets out to the following ppl: all in RiFT (obvs), all in SLP, all in C0SINE, "
-	dc.b	"all in DSR, Motion of Artstate, Raizor of (who is he with now?), H0ffman of Logicoma, and of course the "
+	dc.b	"all in DSR, Motion of Artstate, Raizor of (who is he with now?), Hoffman of Logicoma, and of course the "
 	dc.b	"loving memory of Giz/DSR. We still miss him, and he did so love a few of these tunes. Oh and Meaty. Still miss u too babe"
 	dc.b 	"                                           " 		;bit of empty space before we wrap - LEAVE IT
 	dc.b	$FF,$0												; end of text marker - LEAVE IT
@@ -497,11 +515,8 @@ screen		ds.b	160*288
 screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
-vblcount: 	ds.w	1
-mt_data		ds.b 	64000
-		ds.w	31*640/2		;These zeroes are necessary!
-lz7mod		; it points to the end of the buffer so we can unpack in-place
-
+vblcount: 	ds.w	0
+framecount:      ds.l 0
 picture:	ds.b	32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
@@ -510,3 +525,8 @@ Buffer_scroll:	ds.b	21*8*20
 backup	ds.b	14
 old_vbl	ds.l	1
 	even
+mt_data		ds.b 	64000
+		ds.w	31*640/2		;These zeroes are necessary!
+lz7mod		; it points to the end of the buffer so we can unpack in-place
+
+
