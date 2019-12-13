@@ -19,35 +19,6 @@
 	movem.l	d0-d7,$ffff8240.w		;
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	bsr 	depacktitle
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	move.l #80000,d0
-pause1
-	REPT 400
-	nop
-	ENDR
-	dbf d0,pause1	
-	bsr	depackcreds
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-
-	move.l #800000,d0
-pause2
-	REPT 900
-	nop
-	ENDR
-	dbf d0,pause2	
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
-	bsr	depackpic
-	bsr initselector
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-
-	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr	music_lance_pt50_init
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
@@ -57,12 +28,35 @@ pause2
 
 
 mainloop:
-		addq.l	#1,framecount
 		
-		tst.w	vblcount			;Wait VBL
+	addq.l 		#1,slowcounter
+	cmp.l 		#8000,slowcounter
+	bne		vbltest
+	clr.l 		slowcounter
+
+	
+vbltest:	tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
+		addq.l		#1,framecount
+		
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+	
+		bsr 	depacktitle
+	
+wait1		cmp.l #32,framecount
+		beq wait1
+		bsr	depackcreds
+
+wait2		cmp.l #64,framecount
+		beq wait2
+		bsr	depackpic
+
+		;bsr	initselector
+
+		
+	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 		
 		move.l	screen_adr,d0			;swap screens
@@ -444,7 +438,8 @@ blackpal:	dcb.w	16,$0000			;Black palette
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
-filetab:		dc.b 	'flib.lz7',0,'    '
+filetab:		
+			dc.b 	'flib.lz7',0,'    '
 			dc.b 	'roofduct.lz7',0,''
 			dc.b 	'chipsupp.lz7',0,''
 			dc.b 	'epiclove.lz7',0,''
@@ -505,6 +500,9 @@ TEXT:
 	dc.b	$FF,$0												; end of text marker - LEAVE IT
 
 	even
+vblcount: 	dc.w	0
+framecount:      dc.l 0
+slowcounter      dc.l 0
 
         section bss
 
@@ -515,8 +513,7 @@ screen		ds.b	160*288
 screen_adr:	ds.l 	1
 screen_adr2:	ds.l	1
 dta:		ds.b    44	;dta block about file info
-vblcount: 	ds.w	0
-framecount:      ds.l 0
+
 picture:	ds.b	32034
 Line_scroll:	ds.b	20*2+1
 Adr_scroll:	ds.b	1
@@ -525,7 +522,7 @@ Buffer_scroll:	ds.b	21*8*20
 backup	ds.b	14
 old_vbl	ds.l	1
 	even
-mt_data		ds.b 	64000
+mt_data		ds.b 	100000
 		ds.w	31*640/2		;These zeroes are necessary!
 lz7mod		; it points to the end of the buffer so we can unpack in-place
 

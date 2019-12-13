@@ -27,7 +27,7 @@ def load_bitmaps(fnames, outfile):
         outfile.write(bits)
 
 fnames = []
-fnames.append("selector.png")
-outfile = open("select.dat", "wb")
+fnames.append("select2.png")
+outfile = open("select2.dat", "wb")
 load_bitmaps(fnames, outfile)
 outfile.close()
