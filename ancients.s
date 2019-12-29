@@ -45,11 +45,11 @@ vbltest:	tst.w	vblcount			;Wait VBL
 	
 		bsr 	depacktitle
 	
-wait1		cmp.l #32,framecount
+wait1		cmp.l #320,framecount
 		beq wait1
 		bsr	depackcreds
 
-wait2		cmp.l #64,framecount
+wait2		cmp.l #640,framecount
 		beq wait2
 		bsr	depackpic
 
@@ -57,7 +57,8 @@ wait2		cmp.l #64,framecount
 
 		
 	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
-		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+
+here		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 		
 		move.l	screen_adr,d0			;swap screens
 		move.l	screen_adr2,screen_adr		;doublebuffer
@@ -75,7 +76,7 @@ wait2		cmp.l #64,framecount
 		cmp.b	#$01,$fffffc02.w 	;Escape?
 		beq	exit			;no, keep looping
 
-		bra mainloop
+		bra here
 
 
 *** Cleanup
@@ -222,7 +223,7 @@ tryload
 
 	bsr music_init
 
-	bra mainloop
+	bra here
 *** Change  next
 
 
