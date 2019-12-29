@@ -28,14 +28,7 @@
 
 
 mainloop:
-		
-	addq.l 		#1,slowcounter
-	cmp.l 		#8000,slowcounter
-	bne		vbltest
-	clr.l 		slowcounter
-
-	
-vbltest:	tst.w	vblcount			;Wait VBL
+		tst.w	vblcount			;Wait VBL
 		beq.s	mainloop			;
 		clr.w 	vblcount
 
@@ -45,12 +38,12 @@ vbltest:	tst.w	vblcount			;Wait VBL
 	
 		bsr 	depacktitle
 	
-wait1		cmp.l #320,framecount
-		beq wait1
+wait1		cmp.l #3200,framecount
+		bge wait1
 		bsr	depackcreds
 
-wait2		cmp.l #640,framecount
-		beq wait2
+wait2		cmp.l #6400,framecount
+		bge wait2
 		bsr	depackpic
 
 		;bsr	initselector
