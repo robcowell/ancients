@@ -39,15 +39,70 @@ mainloop:
 		bsr 	depacktitle
 	
 wait1:	
+		; fade out stuff
+		cmp.l 	#8,localcounter
+		ble		.go_on_logo1
+		
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		add.l	#1,logo1_pal_counter
+		cmp.l 	#384-1,logo1_pal_counter
+		ble 	.skip_logo1_pal_inc
+		clr.l 	logo1_pal_counter
+		add.l 	#1,logo1pal_index
+		cmp.l 	#14,logo1pal_index
+		ble 	.skip_logo1_pal_inc
+		move.l 	#15,logo1pal_index
+	
+		;move.l 	logo1pal_index,d0
+		; a0 = palete
+		; d0 = offset
+.skip_logo1_pal_inc:
+		move.l 		logo1pal_index,d0
+		lea 		shiny_fade_data,a0
+    	rol.w       #5,d0
+    	add.w       d0,a0
+    	movem.l     (a0),d0-d7
+    	movem.l     d0-d7,$ffff8240
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+.go_on_logo1:
 		cmp.l 	#10,localcounter
 		ble 	wait1	
 		;cmp.l #32000,framecount
 		;bge wait1
 		bsr	depackcreds
 
+
 		clr.l 	localcounter
 		clr.l 	framecounter
 wait2:		
+		; fade out stuff
+		cmp.l 	#8,localcounter
+		ble		.go_on_logo2
+		
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		add.l	#1,logo2_pal_counter
+		cmp.l 	#384-1,logo2_pal_counter
+		ble 	.skip_logo2_pal_inc
+		clr.l 	logo2_pal_counter
+		add.l 	#1,logo2pal_index
+		cmp.l 	#14,logo2pal_index
+		ble 	.skip_logo2_pal_inc
+		move.l 	#15,logo2pal_index
+	
+		;move.l 	logo1pal_index,d0
+		; a0 = palete
+		; d0 = offset
+.skip_logo2_pal_inc:
+		move.l 		logo2pal_index,d0
+		lea 		credits_fade_data,a0
+    	rol.w       #5,d0
+    	add.w       d0,a0
+    	movem.l     (a0),d0-d7
+    	movem.l     d0-d7,$ffff8240
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
+
+.go_on_logo2:
 		cmp.l 	#10,localcounter
 		ble 	wait2	
 		;cmp.l #64000,framecount
@@ -512,7 +567,11 @@ blackpal:	dcb.w	16,$0000			;Black palette
 * big numbers
 ***
 
-active_music: 	dc.l 		0
+active_music: 			dc.l 		0
+logo1_pal_counter:		dc.l 		0
+logo2_pal_counter:		dc.l 		0
+logo1pal_index:			dc.l 		0
+logo2pal_index:			dc.l 		0
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
@@ -544,6 +603,48 @@ filetab_end		dc.b 	'bignum.lz7',0,'  '
 			dc.b 	0
 			even
 *** end of filenames
+
+shiny_fade_data:
+	dc.w $000,$019,$12A,$8AB,$8BC,$233,$3BB,$14D,$A4C,$2C6,$C55,$BD6,$C6E,$DE7,$67F,$7FF
+	dc.w $000,$081,$892,$023,$034,$9AA,$A33,$8B5,$2B4,$94D,$4CC,$35D,$4D6,$56E,$DE7,$E77
+	dc.w $000,$081,$892,$023,$03B,$9AA,$A33,$83C,$23B,$9B5,$B44,$3C5,$B5D,$CD6,$56E,$6EE
+	dc.w $000,$081,$892,$02A,$0AB,$922,$2AA,$834,$23B,$9BC,$B44,$A4C,$BC5,$45D,$CD6,$D66
+	dc.w $000,$081,$819,$09A,$0A3,$122,$2AA,$8A4,$9A3,$134,$3BB,$A44,$34C,$4C5,$45D,$5DD
+	dc.w $000,$081,$819,$092,$023,$122,$222,$8AB,$9A3,$134,$333,$2B4,$344,$B4C,$4C5,$C55
+	dc.w $000,$088,$819,$092,$02A,$199,$922,$823,$92A,$1AB,$A33,$23B,$ABB,$3B4,$B4C,$4CC
+	dc.w $000,$088,$811,$019,$092,$199,$999,$82A,$122,$123,$2AA,$9A3,$233,$A3B,$3B4,$B44
+	dc.w $000,$008,$081,$019,$092,$811,$199,$09A,$192,$82A,$222,$9AA,$2A3,$A33,$A3B,$3BB
+	dc.w $000,$008,$081,$011,$019,$811,$111,$092,$199,$892,$922,$122,$92A,$2AA,$2A3,$A33
+	dc.w $000,$008,$088,$081,$019,$811,$111,$019,$819,$892,$999,$192,$922,$922,$22A,$2AA
+	dc.w $000,$000,$088,$088,$081,$888,$888,$011,$811,$819,$111,$819,$199,$199,$992,$922
+	dc.w $000,$000,$008,$088,$088,$088,$888,$081,$888,$081,$811,$811,$811,$111,$119,$199
+	dc.w $000,$000,$000,$000,$008,$000,$000,$088,$088,$088,$888,$088,$888,$888,$881,$811
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$008,$088
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+
+credits_fade_data:
+	dc.w $888,$199,$923,$A3B,$245,$B45,$CC5,$B5D,$C5D,$B6F,$C6E,$D6E,$CEF,$D7F,$67F,$7FF
+	dc.w $000,$811,$19A,$2A3,$9BC,$3BC,$44C,$3C5,$4C5,$3D7,$4D6,$5D6,$467,$5E7,$DE7,$E77
+	dc.w $000,$811,$19A,$2A3,$934,$334,$BB4,$34C,$B4C,$35E,$B5D,$C5D,$BDE,$C6E,$56E,$6EE
+	dc.w $000,$811,$192,$22A,$934,$A34,$BB4,$A44,$B44,$AC6,$BC5,$4C5,$B56,$4D6,$CD6,$D66
+	dc.w $000,$811,$112,$92A,$1AB,$AAB,$33B,$AB4,$3B4,$A4D,$34C,$44C,$3CD,$45D,$45D,$5DD
+	dc.w $000,$811,$112,$922,$1A3,$2A3,$333,$23B,$33B,$245,$344,$B44,$345,$BC5,$4C5,$C55
+	dc.w $000,$888,$819,$992,$123,$223,$AA3,$233,$A33,$2BC,$ABB,$3BB,$ABC,$34C,$B4C,$4CC
+	dc.w $000,$888,$819,$199,$12A,$92A,$22A,$9AA,$2AA,$934,$233,$A33,$234,$AB4,$3B4,$B44
+	dc.w $000,$088,$881,$119,$892,$992,$222,$92A,$22A,$9AB,$2A3,$AA3,$23B,$A3B,$A3B,$3BB
+	dc.w $000,$088,$881,$111,$892,$192,$992,$122,$922,$123,$92A,$22A,$9A3,$2A3,$2A3,$A33
+	dc.w $000,$088,$881,$811,$819,$119,$999,$199,$999,$12A,$922,$922,$92A,$92A,$22A,$2AA
+	dc.w $000,$000,$088,$888,$811,$811,$111,$811,$111,$892,$199,$199,$192,$192,$992,$922
+	dc.w $000,$000,$008,$888,$081,$881,$881,$811,$811,$819,$811,$111,$819,$119,$119,$199
+	dc.w $000,$000,$000,$000,$088,$088,$888,$088,$888,$081,$888,$888,$881,$881,$881,$811
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$008,$000,$000,$008,$008,$008,$088
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
+	dc.w $000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000,$000
 
 
 sel1_p:		incbin 	"sel1.pi1"
@@ -613,5 +714,4 @@ old_vbl	ds.l	1
 mt_data		ds.b 	100000
 		ds.w	31*640/2		;These zeroes are necessary!
 lz7mod		; it points to the end of the buffer so we can unpack in-place
-
 
