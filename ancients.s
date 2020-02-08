@@ -38,12 +38,20 @@ mainloop:
 	
 		bsr 	depacktitle
 	
-wait1		cmp.l #32000,framecount
-		bge wait1
+wait1:	
+		cmp.l 	#10,localcounter
+		ble 	wait1	
+		;cmp.l #32000,framecount
+		;bge wait1
 		bsr	depackcreds
 
-wait2		cmp.l #64000,framecount
-		bge wait2
+		clr.l 	localcounter
+		clr.l 	framecounter
+wait2:		
+		cmp.l 	#10,localcounter
+		ble 	wait2	
+		;cmp.l #64000,framecount
+		;bge wait2
 		bsr	depackpic
 
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
@@ -197,6 +205,14 @@ row_copy_loop
 *** VBL Routine ***
 vbl
 	addq.w #1,vblcount
+
+	add.l 		#1,slowcounter
+	cmp.l 		#25-1,slowcounter		
+	bne.s 		.no_inc
+	clr.l 		slowcounter
+	add.l 		#1,framecounter
+	add.l 		#1,localcounter
+.no_inc:
 
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_play
@@ -572,6 +588,9 @@ TEXT:
 vblcount: 	dc.w	0
 framecount:      dc.l 0
 slowcounter      dc.l 0
+delay_counter:	dc.l 	0
+framecounter:		dc.l 	0
+localcounter:		dc.l 	0
 
         section bss
 
