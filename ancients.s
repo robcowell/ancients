@@ -67,7 +67,7 @@ here:
 		cmp.l 	#12-1,active_music
 		ble 	.set_pic1
 		lea.l 	sel2_p+34,a0
-		sub.l 	#11,d0					;offset since we are on another screen
+		sub.l 	#12,d0					;offset since we are on another screen
 		jmp 	.display_menu
 	.set_pic1:
 		lea.l 	sel1_p+34,a0
@@ -82,16 +82,16 @@ here:
 		move.l 		#102,d0
 		mulu.w 		#160,d0		
 		add.l		d0,a1
-		add.l 		#16,a1				; xoffset
+		add.l 		#24,a1				; xoffset
 
 		moveq.l		#16-1,d0 	
 	.pumpy:
-		move.l 		#15-1,d1
+		move.l 		#16-1,d1
 	.pumpx:
 		move.l  (a0)+,(a1)+
 		dbf 	d1,.pumpx
-		add.l 	#100,a1
-		add.l 	#100,a0
+		add.l 	#100-4,a1
+		add.l 	#100-4,a0
 		dbf		d0,.pumpy
 
 
@@ -226,8 +226,12 @@ music_play:
 
 *** Change MOD
 nextmod:
+	cmp.l 	#23,active_music
+	bne 	.ok_to_go_next
+	bra 	here
+	
+.ok_to_go_next:
 	add.l 	#1,active_music
-
 	jsr	music_lance_pt50_stop
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
@@ -493,7 +497,6 @@ blackpal:	dcb.w	16,$0000			;Black palette
 ***
 
 active_music: 	dc.l 		0
-max_tunes:		dc.l 		24
 
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
