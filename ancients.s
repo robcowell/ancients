@@ -38,18 +38,20 @@ mainloop:
 	
 		bsr 	depacktitle
 	
-wait1		cmp.l #3200,framecount
+wait1		cmp.l #32000,framecount
 		bge wait1
 		bsr	depackcreds
 
-wait2		cmp.l #6400,framecount
+wait2		cmp.l #64000,framecount
 		bge wait2
 		bsr	depackpic
 
-		;bsr	initselector
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
+		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+		;bsr	initselector
+		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 		
-	movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 
 here		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 		
@@ -138,10 +140,11 @@ piccy
 	move.l	#((160*78)/4)-1,d0
 	rts
 
+*** tune selector image ***
 initselector
 	lea selector,a1
 	lea screen_adr,a0
-	move.l #20,d0
+	move.l #200,d0
 
 row_copy_loop
 	move.w (a0)+,(a1)
@@ -152,6 +155,8 @@ row_copy_loop
 	lea 160(a1),a1		; next row
 	dbf d0,row_copy_loop
 	rts
+
+*** end tune selector image ***
 
 *** VBL Routine ***
 vbl
@@ -481,15 +486,20 @@ TXT_POINTER:	dc.l	TEXT
 
 TEXT:
 	dc.b 	"RiFT are proud to present                    "
-	dc.b 	"TECHNOLOGIES OF THE ANCIENTS                    "
+	dc.b 	"TECHNOLOGY OF THE ANCIENTS                    "
 	dc.b 	"A little music disk showcasing the talents of our musician, Bextula of RiFT                      "
 	dc.b 	"Over the years, our Bex has gone by a number of handles - Bassline, Bex, Sick Man, Meek and more - "
 	dc.b 	"but one thing that has remained the same is the quality of the MODs produced.                    "
 	dc.b 	"Now over to our amazing musician Bex, whose fantastic tunes you're listening to, for a few words....."
-	dc.b	"hey guys. This is bextula speaking into Google assistant (not really but let's pretend I'm brave enough). "
+	dc.b	"hey guys. This is Bextula speaking into Google assistant (not really but let's pretend I'm brave enough). "
 	dc.b	"Just want to send a few greets out to the following ppl: all in RiFT (obvs), all in SLP, all in C0SINE, "
 	dc.b	"all in DSR, Motion of Artstate, Raizor of (who is he with now?), Hoffman of Logicoma, and of course the "
 	dc.b	"loving memory of Giz/DSR. We still miss him, and he did so love a few of these tunes. Oh and Meaty. Still miss u too babe"
+	dc.b	"                           "
+	dc.b	"Bossman back on the keys - I just wanted to take the opportunity to thank STALVIK of BITBENDAZ for helping with final "
+	dc.b	"code fixes at the party place and helping us get this demo over the line and released.  You rock buddy!"
+	dc.b	"                                              "
+	dc.b	"RiFT - Dropping Atari dopeness in your Amiga party since 2020"
 	dc.b 	"                                           " 		;bit of empty space before we wrap - LEAVE IT
 	dc.b	$FF,$0												; end of text marker - LEAVE IT
 
