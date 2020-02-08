@@ -38,12 +38,20 @@ mainloop:
 	
 		bsr 	depacktitle
 	
-wait1		cmp.l #32000,framecount
-		bge wait1
+wait1:	
+		cmp.l 	#10,localcounter
+		ble 	wait1	
+		;cmp.l #32000,framecount
+		;bge wait1
 		bsr	depackcreds
 
-wait2		cmp.l #64000,framecount
-		bge wait2
+		clr.l 	localcounter
+		clr.l 	framecounter
+wait2:		
+		cmp.l 	#10,localcounter
+		ble 	wait2	
+		;cmp.l #64000,framecount
+		;bge wait2
 		bsr	depackpic
 
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
@@ -53,11 +61,47 @@ wait2		cmp.l #64000,framecount
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
 		
 
-here		movem.l	d0-d7/a0-a6,-(sp)	;backup registers
+here:		
+	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 		
 		move.l	screen_adr,d0			;swap screens
 		move.l	screen_adr2,screen_adr		;doublebuffer
 		move.l	d0,screen_adr2			;
+
+		; hack
+
+		move.l 	active_music,d0
+
+		cmp.l 	#12-1,active_music
+		ble 	.set_pic1
+		lea.l 	sel2_p+34,a0
+		sub.l 	#12,d0					;offset since we are on another screen
+		jmp 	.display_menu
+	.set_pic1:
+		lea.l 	sel1_p+34,a0
+	.display_menu:
+		mulu.w 	#16,d0					; lsl instead !!
+		mulu.w 	#160,d0					; optimize plz
+
+		;lea.l	sel2_p+34,a0
+		add.l 	d0,a0					; scanline offset
+
+		move.l 		screen_adr,a1
+		move.l 		#102,d0
+		mulu.w 		#160,d0		
+		add.l		d0,a1
+		add.l 		#24,a1				; xoffset
+
+		moveq.l		#16-1,d0 	
+	.pumpy:
+		move.l 		#16-1,d1
+	.pumpx:
+		move.l  (a0)+,(a1)+
+		dbf 	d1,.pumpx
+		add.l 	#100-4,a1
+		add.l 	#100-4,a0
+		dbf		d0,.pumpy
+
 
 		;bsr	scroller
 		movem.l	(sp)+,d0-d7/a0-a6	;restore registers
@@ -162,6 +206,14 @@ row_copy_loop
 vbl
 	addq.w #1,vblcount
 
+	add.l 		#1,slowcounter
+	cmp.l 		#25-1,slowcounter		
+	bne.s 		.no_inc
+	clr.l 		slowcounter
+	add.l 		#1,framecounter
+	add.l 		#1,localcounter
+.no_inc:
+
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
 	jsr music_play
 	bsr	scroller
@@ -190,6 +242,12 @@ music_play:
 
 *** Change MOD
 nextmod:
+	cmp.l 	#23,active_music
+	bne 	.ok_to_go_next
+	bra 	here
+	
+.ok_to_go_next:
+	add.l 	#1,active_music
 	jsr	music_lance_pt50_stop
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
@@ -200,6 +258,24 @@ nextmod:
 	rts
 
 prevmod:
+	cmp.l 		#0,active_music
+	bne 		.not_zero
+	bra 		here
+
+	bra 		.checks_done
+.not_zero:
+	cmp.l 		#1,active_music
+	beq 		.not_one
+	bra 		.checks_done
+.not_one:
+.checks_done:
+	add.l 		#-1,active_music
+
+
+	;move.l 	#active_music,d0
+	;cmp.l 	#0,d0
+	;ble 	skip_prev
+
 	jsr 	music_lance_pt50_stop
 	cmp.l #filetab,a6
 	beq.s .wrap
@@ -221,6 +297,7 @@ tryload
 
 	bsr music_init
 
+skip_prev:
 	bra here
 *** Change  next
 
@@ -435,6 +512,8 @@ blackpal:	dcb.w	16,$0000			;Black palette
 * big numbers
 ***
 
+active_music: 	dc.l 		0
+
 ** 	filenames - 0 terminated
 **  '12345678.123',0,''	; 12 characters per entry
 filetab:		
@@ -467,6 +546,8 @@ filetab_end		dc.b 	'bignum.lz7',0,'  '
 *** end of filenames
 
 
+sel1_p:		incbin 	"sel1.pi1"
+sel2_p:		incbin 	"sel2.pi1"
 
 
 
@@ -507,6 +588,9 @@ TEXT:
 vblcount: 	dc.w	0
 framecount:      dc.l 0
 slowcounter      dc.l 0
+delay_counter:	dc.l 	0
+framecounter:		dc.l 	0
+localcounter:		dc.l 	0
 
         section bss
 
