@@ -142,10 +142,10 @@ here:
 		add.l 	d0,a0					; scanline offset
 
 		move.l 		screen_adr,a1
-		move.l 		#102,d0
+		move.l 		#112,d0
 		mulu.w 		#160,d0		
 		add.l		d0,a1
-		add.l 		#24,a1				; xoffset
+		add.l 		#16,a1				; xoffset
 
 		moveq.l		#16-1,d0 	
 	.pumpy:
