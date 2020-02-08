@@ -306,9 +306,9 @@ nextmod:
 	jsr	music_lance_pt50_stop
 
 	lea 13(a6),a6	; move on 13 characters, so one filename
-	tst.b (a6)		; is it a zero?
-	bne tryload 	; no, so try loading the filename
-	lea filetab,a6  ; otherwise loop back to first file in table
+	;tst.b (a6)		; is it a zero?
+	;bsr tryload 	; no, so try loading the filename
+	;lea filetab,a6  ; otherwise loop back to first file in table
 	bra tryload
 	rts
 
@@ -332,17 +332,17 @@ prevmod:
 	;ble 	skip_prev
 
 	jsr 	music_lance_pt50_stop
-	cmp.l #filetab,a6
-	beq.s .wrap
+	;cmp.l #filetab,a6
+	;beq.s .wrap
 
 	lea -13(a6),a6
-	lea filetab,a6
+	;lea filetab,a6
 	bra tryload
 
-.wrap
-	lea filetab_end,a6
-	bra tryload
-	rts
+;.wrap
+	;lea filetab_end,a6
+	;bra tryload
+	;rts
 
 tryload
 	movem.l	d0-d7/a0-a6,-(sp)	;backup registers
@@ -352,7 +352,7 @@ tryload
 
 	bsr music_init
 
-skip_prev:
+;skip_prev:
 	bra here
 *** Change  next
 
